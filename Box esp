@@ -1,0 +1,62 @@
+-- Basic ESP Box Script for Roblox
+-- Note: This script is for educational purposes only.
+
+-- Services
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+
+-- ESP Box Settings
+local boxSize = Vector3.new(4, 6, 1)  -- Size of the ESP box
+local boxOffset = Vector3.new(0, 3, -5)  -- Offset of the ESP box from the player's character
+
+-- Function to create the ESP Box
+local function createESPBox(character)
+    local box = Instance.new("BoxHandleAdornment")
+    box.Size = boxSize
+    box.Color3 = Color3.fromRGB(255, 0, 0)  -- Red color
+    box.Transparency = 0.5
+    box.AlwaysOnTop = true
+    box.ZIndex = 10
+    box.Adornee = character
+    box.Parent = game.Workspace.CurrentCamera
+    return box
+end
+
+-- Function to update the ESP Box position
+local function updateESPBox(box, character)
+    local rootPart = character:FindFirstChild("HumanoidRootPart")
+    if rootPart then
+        box.CFrame = rootPart.CFrame * CFrame.new(boxOffset)
+    end
+end
+
+-- Main ESP Logic
+local function onPlayerAdded(player)
+    player.CharacterAdded:Connect(function(character)
+        local box = createESPBox(character)
+        
+        RunService.RenderStepped:Connect(function()
+            if character and character.Parent then
+                updateESPBox(box, character)
+            else
+                box:Destroy()
+            end
+        end)
+    end)
+end
+
+-- Connect the ESP logic to existing players and new players
+for _, player in pairs(Players:GetPlayers()) do
+    onPlayerAdded(player)
+end
+Players.PlayerAdded:Connect(onPlayerAdded)
+
+-- Ensure ESP boxes are destroyed when the player leaves
+Players.PlayerRemoving:Connect(function(player)
+    if player.Character then
+        local box = player.Character:FindFirstChildOfClass("BoxHandleAdornment")
+        if box then
+            box:Destroy()
+        end
+    end
+end)
