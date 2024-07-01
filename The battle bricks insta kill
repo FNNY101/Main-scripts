@@ -1,0 +1,31 @@
+while wait(3) do
+    for i, v in pairs(game:GetService("Workspace").NPCFolders.EnemyFolder:GetChildren()) do
+        if v.Name == "Battler" or v.Name == "Blonde Battler" or v.Name == "Trowel Battler" or
+           v.Name == "Builder Battler" or v.Name == "Sword Battler" or v.Name == "Brigand Battler" or
+           v.Name == "Baller Battler" or v.Name == "Soccer Battler" or v.Name == "Bomb Battler" or
+           v.Name == "Kamikaze Battler" or v.Name == "Rocket Battler" or v.Name == "Crocket Battler" or
+           v.Name == "Titan Battler" or v.Name == "Telamon Battler" or v.Name == "Paintmaster" or
+           v.Name == "Terminator" or v.Name == "Jetrock" or v.Name == "Hellfighter" or v.Name == "Doombringer" or
+           v.Name == "Deathbringer" or v.Name == "Paintball Battler" or v.Name == "Sniper Battler" or
+           v.Name == "Grenade Battler" or v.Name == "Arson Battler" or v.Name == "Speed Battler" or
+           v.Name == "Dual Speed Battler" or v.Name == "Gravity Battler" or v.Name == "Dual Gravity Battler" or
+           v.Name == "Regen Battler" or v.Name == "Dual Regen Battler" or v.Name == "Hammer Battler" or
+           v.Name == "Banhammer Battler" then
+
+            local args = {
+                [1] = false,
+                [2] = Vector3.new(-2.2113428115844727, -49.91499328613281, 136.3750762939453),
+                [3] = Vector3.new(-37.55739212036133, -49.439735412597656, 63.64154052734375),
+                [4] = v:WaitForChild("HumanoidRootPart"),
+                [5] = 0,
+                [6] = Vector3.new(0, 0, -1),
+                [7] = 1,
+                [8] = {
+                    [1] = v
+                }
+            }
+
+            game:GetService("Players").LocalPlayer.Character:FindFirstChild("Assault Rifle").FireRemote:FireServer(unpack(args))
+        end
+    end
+end
