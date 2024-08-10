@@ -1,0 +1,59 @@
+--// esp functions
+
+function get_players()
+    local player_list = {}
+    for _, player in workspace:GetChildren() do
+        if players:FindFirstChild(tostring(player)) then
+            local root = player:FindFirstChild("HumanoidRootPart")
+            if root and (not root:FindFirstChild("PathfindingModifier")) then
+                player_list[#player_list + 1] = player
+            end
+        end
+    end
+    return player_list
+end
+
+function cache_add(player)
+    if not storage.cache[player] then
+        local line = Drawing.new("Line")
+        line.Transparency = 1
+        line.Color = features.esp.color
+        storage.cache[player] = line
+    end
+end
+
+function cache_remove(player)
+    local cached_plr = storage.cache[player]
+    if cached_plr then
+        cached_plr:Remove()
+        storage.cache[player] = nil
+    end
+end
+
+run_service.RenderStepped:Connect(function()
+    for _, player in get_players() do
+        cache_add(player)
+    end
+
+    for character, line in storage.cache do
+        if localplayer.Character:FindFirstChild("HumanoidRootPart") and character and character:FindFirstChild("HumanoidRootPart") and character:FindFirstChildOfClass("Humanoid") and character:FindFirstChildOfClass("Humanoid").Health > 0 then
+            
+            local root = character.HumanoidRootPart
+            local root_screen_pos, on_screen = camera:WorldToViewportPoint(root.Position)
+            local local_root = localplayer.Character and localplayer.Character:FindFirstChild("HumanoidRootPart")
+            local local_screen_pos = camera:WorldToViewportPoint(local_root.Position)
+
+            if on_screen then
+                line.Visible = features.esp.enabled
+                line.From = Vector2.new(local_screen_pos.X, local_screen_pos.Y)
+                line.To = Vector2.new(root_screen_pos.X, root_screen_pos.Y)
+                line.Color = features.esp.color
+            else
+                cache_remove(character)
+            end
+
+        else
+            cache_remove(character)
+        end
+    end
+end)
