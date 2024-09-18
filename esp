@@ -1,59 +1,149 @@
---// esp functions
+-- ESP Configuration Table
+local Config = {
+    -- Box Settings
+    Box               = true, -- Enable or disable the box around players
+    BoxColor          = Color3.fromRGB(255, 255, 255), -- Color of the box border (white)
+    BoxThickness      = 1, -- Thickness of the box border
+    
+    -- Box Outline Settings
+    BoxOutline        = true, -- Enable or disable the box outline
+    BoxOutlineColor   = Color3.fromRGB(255, 255, 255), -- Color of the box outline (white)
+    BoxOutlineThickness = 1, -- Thickness of the box outline border
+    
+    -- Health Bar Settings
+    HealthBar         = true, -- Enable or disable the health bar
+    HealthBarSide     = "Left", -- Side of the box where the health bar appears ("Left", "Bottom", "Right")
+    
+    -- Name Display Settings
+    Names             = true, -- Enable or disable the name display
+    NamesColor        = Color3.fromRGB(255, 255, 255), -- Color of the name text (white)
+    NamesOutline      = true, -- Enable or disable the outline around the name text
+    NamesOutlineColor = Color3.fromRGB(0, 0, 0), -- Color of the name text outline (black)
+    NamesFont         = 2, -- Font style (0: SciFi, 1: System, 2: Parchment, 3: SourceSans)
+    NamesSize         = 13, -- Size of the name text
+}
 
-function get_players()
-    local player_list = {}
-    for _, player in workspace:GetChildren() do
-        if players:FindFirstChild(tostring(player)) then
-            local root = player:FindFirstChild("HumanoidRootPart")
-            if root and (not root:FindFirstChild("PathfindingModifier")) then
-                player_list[#player_list + 1] = player
-            end
-        end
-    end
-    return player_list
-end
-
-function cache_add(player)
-    if not storage.cache[player] then
-        local line = Drawing.new("Line")
-        line.Transparency = 1
-        line.Color = features.esp.color
-        storage.cache[player] = line
-    end
-end
-
-function cache_remove(player)
-    local cached_plr = storage.cache[player]
-    if cached_plr then
-        cached_plr:Remove()
-        storage.cache[player] = nil
-    end
-end
-
-run_service.RenderStepped:Connect(function()
-    for _, player in get_players() do
-        cache_add(player)
-    end
-
-    for character, line in storage.cache do
-        if localplayer.Character:FindFirstChild("HumanoidRootPart") and character and character:FindFirstChild("HumanoidRootPart") and character:FindFirstChildOfClass("Humanoid") and character:FindFirstChildOfClass("Humanoid").Health > 0 then
+-- Function to Create ESP for a Player
+local function CreateEsp(Player)
+    -- Create Drawing objects for ESP elements
+    local Box = Drawing.new("Square")
+    local BoxOutline = Drawing.new("Square")
+    local Name = Drawing.new("Text")
+    local HealthBar = Drawing.new("Square")
+    
+    -- Initial configuration for ESP elements
+    Box.Filled = false -- Transparent inside
+    Box.Color = Config.BoxColor
+    Box.Thickness = Config.BoxThickness
+    Box.ZIndex = 69
+    
+    BoxOutline.Filled = false -- Transparent outline fill
+    BoxOutline.Color = Config.BoxOutlineColor
+    BoxOutline.Thickness = Config.BoxOutlineThickness
+    BoxOutline.ZIndex = 68 -- Ensure it's behind the Box
+    BoxOutline.Visible = Config.BoxOutline
+    
+    Name.Visible = false
+    Name.Center = true
+    Name.Color = Config.NamesColor
+    Name.Font = Config.NamesFont
+    Name.Size = Config.NamesSize
+    Name.Outline = Config.NamesOutline
+    Name.OutlineColor = Config.NamesOutlineColor
+    Name.ZIndex = 69
+    
+    HealthBar.Filled = true
+    HealthBar.Color = Color3.fromRGB(0, 255, 0) -- Initial color (green)
+    HealthBar.Thickness = 1
+    HealthBar.ZIndex = 69
+    
+    -- Connect the RenderStepped event to update ESP every frame
+    local Updater = game:GetService("RunService").RenderStepped:Connect(function()
+        -- Ensure the player and their character are valid
+        if Player.Character and Player.Character:FindFirstChild("Humanoid") and Player.Character:FindFirstChild("HumanoidRootPart") and Player.Character:FindFirstChild("Head") and Player.Character.Humanoid.Health > 0 then
+            local Humanoid = Player.Character.Humanoid
+            local HRP = Player.Character.HumanoidRootPart
+            local Camera = workspace.CurrentCamera
             
-            local root = character.HumanoidRootPart
-            local root_screen_pos, on_screen = camera:WorldToViewportPoint(root.Position)
-            local local_root = localplayer.Character and localplayer.Character:FindFirstChild("HumanoidRootPart")
-            local local_screen_pos = camera:WorldToViewportPoint(local_root.Position)
-
-            if on_screen then
-                line.Visible = features.esp.enabled
-                line.From = Vector2.new(local_screen_pos.X, local_screen_pos.Y)
-                line.To = Vector2.new(root_screen_pos.X, root_screen_pos.Y)
-                line.Color = features.esp.color
+            -- Get the 2D position and visibility of the HumanoidRootPart
+            local Target2dPosition, IsVisible = Camera:WorldToViewportPoint(HRP.Position)
+            
+            -- Calculate scale factor based on distance
+            local scale_factor = 1 / (Target2dPosition.Z * math.tan(math.rad(Camera.FieldOfView * 0.5)) * 2) * 100
+            local width, height = math.floor(30 * scale_factor), math.floor(45 * scale_factor) -- Adjust box size
+            
+            -- Update Box ESP
+            if Config.Box then
+                Box.Visible = IsVisible
+                Box.Size = Vector2.new(width, height)
+                Box.Position = Vector2.new(Target2dPosition.X - Box.Size.X / 2, Target2dPosition.Y - Box.Size.Y / 2)
             else
-                cache_remove(character)
+                Box.Visible = false
             end
-
+            
+            -- Update Box Outline
+            if Config.BoxOutline then
+                BoxOutline.Visible = IsVisible
+                BoxOutline.Size = Vector2.new(width, height)
+                BoxOutline.Position = Vector2.new(Target2dPosition.X - BoxOutline.Size.X / 2, Target2dPosition.Y - BoxOutline.Size.Y / 2)
+            else
+                BoxOutline.Visible = false
+            end
+            
+            -- Update Health Bar ESP
+            if Config.HealthBar then
+                HealthBar.Visible = IsVisible
+                
+                -- Set Health Bar Size and Position based on the side
+                local barWidth = Config.BoxThickness -- Health bar width matches the box thickness
+                local barHeight = height * (Humanoid.Health / Humanoid.MaxHealth) -- Full height of the ESP box
+                
+                if Config.HealthBarSide == "Left" then
+                    HealthBar.Size = Vector2.new(barWidth, barHeight)
+                    HealthBar.Position = Vector2.new(Target2dPosition.X - width / 2 - barWidth - 2, Target2dPosition.Y + height / 2 - barHeight - 1) -- Position adjusted slightly down
+                elseif Config.HealthBarSide == "Bottom" then
+                    HealthBar.Size = Vector2.new(width - 6, 2)
+                    HealthBar.Position = Vector2.new(Target2dPosition.X - width / 2 + 3, Target2dPosition.Y + height / 2 + 5)
+                end
+                
+                -- Set Health Bar Color (Red to Green)
+                local healthPercent = Humanoid.Health / Humanoid.MaxHealth
+                HealthBar.Color = Color3.fromRGB(255, 0, 0):lerp(Color3.fromRGB(0, 255, 0), healthPercent)
+            else
+                HealthBar.Visible = false
+            end
+            
+            -- Update Name Display ESP
+            if Config.Names then
+                Name.Visible = IsVisible
+                Name.Text = Player.Name.." "..math.floor((Camera.CFrame.p - HRP.Position).magnitude).."m"
+                Name.Position = Vector2.new(Target2dPosition.X, Target2dPosition.Y - height * 0.5 - 15)
+            else
+                Name.Visible = false
+            end
+            
         else
-            cache_remove(character)
+            Box.Visible = false
+            BoxOutline.Visible = false
+            Name.Visible = false
+            HealthBar.Visible = false
+            if not Player then
+                Box:Remove()
+                BoxOutline:Remove()
+                Name:Remove()
+                HealthBar:Remove()
+                Updater:Disconnect()
+            end
         end
+    end)
+end
+
+-- Create ESP for all players
+for _, v in pairs(game:GetService("Players"):GetPlayers()) do
+    if v ~= game:GetService("Players").LocalPlayer then
+        CreateEsp(v)
+        v.CharacterAdded:Connect(function()
+            CreateEsp(v)
+        end)
     end
-end)
+end
