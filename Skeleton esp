@@ -1,0 +1,100 @@
+--[[
+    WARNING: Heads up! This script has not been verified by ScriptBlox. Use at your own risk!
+]]
+
+-- Made by Blissful#4992
+local settings = {
+    Color = Color3.fromRGB(255, 0, 0),
+    Size = 15,
+    Transparency = 1, -- 1 Visible - 0 Not Visible
+    AutoScale = true
+}
+
+local space = game:GetService("Workspace")
+local player = game:GetService("Players").LocalPlayer
+local camera = space.CurrentCamera
+
+local function NewText(color, size, transparency)
+    local text = Drawing.new("Text")
+    text.Visible = false
+    text.Text = ""
+    text.Position = Vector2.new(0, 0)
+    text.Color = color
+    text.Size = size
+    text.Center = true
+    text.Transparency = transparency
+    return text
+end
+
+local function Visibility(state, lib)
+    for _, x in pairs(lib) do
+        x.Visible = state
+    end
+end
+
+local function Size(size, lib)
+    for _, x in pairs(lib) do
+        x.Size = size
+    end
+end
+
+-- Function to create ESP for each player
+local function CreateESPForPlayer(v)
+    local library = {
+        name = NewText(settings.Color, settings.Size, settings.Transparency)
+    }
+
+    local connection
+    connection = game:GetService("RunService").RenderStepped:Connect(function()
+        if v.Character and v.Character:FindFirstChild("Humanoid") and v.Character:FindFirstChild("HumanoidRootPart") and v.Name ~= player.Name and v.Character.Humanoid.Health > 0 then
+            local HumanoidRootPart_Pos, OnScreen = camera:WorldToViewportPoint(v.Character.HumanoidRootPart.Position)
+            if OnScreen then
+                library.name.Text = v.Name
+                library.name.Position = Vector2.new(HumanoidRootPart_Pos.X, HumanoidRootPart_Pos.Y)
+                
+                -- AutoScale
+                if settings.AutoScale then
+                    local distance = (camera.CFrame.Position - v.Character.HumanoidRootPart.Position).magnitude
+                    local textsize = math.clamp(1/distance * 1000, 2, 30)
+                    Size(textsize, library)
+                else 
+                    Size(settings.Size, library)
+                end
+
+                Visibility(true, library)
+            else 
+                Visibility(false, library)
+            end
+        else 
+            Visibility(false, library)
+            if not game.Players:FindFirstChild(v.Name) then
+                connection:Disconnect()
+            end
+        end
+    end)
+end
+
+-- Create ESP for all current players
+for _, v in pairs(game:GetService("Players"):GetPlayers()) do
+    if v.Name ~= player.Name then
+        CreateESPForPlayer(v)
+    end
+end
+
+-- Create ESP for players that join
+game.Players.PlayerAdded:Connect(function(newplr)
+    CreateESPForPlayer(newplr)
+end)
+
+-- Load the Skeleton ESP library (ensure the URL is correct)
+local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/Blissful4992/ESPs/main/UniversalSkeleton.lua"))()
+
+-- Create skeleton ESP for players
+local Skeletons = {}
+for _, Player in pairs(game.Players:GetChildren()) do
+    table.insert(Skeletons, Library:NewSkeleton(Player, true))
+end
+
+game.Players.PlayerAdded:Connect(function(Player)
+    table.insert(Skeletons, Library:NewSkeleton(Player, true))
+end)
